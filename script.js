@@ -14,8 +14,9 @@ let gamePhase = 1; // 1: Đặt quân, 2: Di chuyển quân
 let piecesPlaced = { X: 0, O: 0 };
 let selectedPiece = null;
 let difficulty = 'easy';
-let timeLeft = 120; // 2 phút = 120 giây
+let timeLeft = { X: 120, O: 120 }; // Mỗi người có 2 phút riêng
 let timerInterval = null;
+let turnStartTime = null;
 
 const winningConditions = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -34,17 +35,36 @@ diffBtns.forEach(btn => {
 });
 
 function startTimer() {
-    stopTimer();
-    timeLeft = 120;
-    updateTimerDisplay();
+    if (timerInterval) return; // Đã chạy rồi thì không start lại
+    
+    turnStartTime = Date.now();
     timerInterval = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-            stopTimer();
-            endGame(`${currentPlayer === 'X' ? 'Bot (O)' : 'Người chơi (X)'} thắng! (Hết giờ)`);
+        const elapsed = Math.floor((Date.now() - turnStartTime) / 1000);
+        if (elapsed > 0) {
+            timeLeft[currentPlayer] = Math.max(0, timeLeft[currentPlayer] - elapsed);
+            turnStartTime = Date.now();
+            updateTimerDisplay();
+            
+            if (timeLeft[currentPlayer] <= 0) {
+                stopTimer();
+                endGame(`${currentPlayer === 'X' ? 'Bot (O)' : 'Người chơi (X)'} thắng! (Hết giờ)`);
+            }
         }
-    }, 1000);
+    }, 100);
+}
+
+function pauseTimer() {
+    // Cập nhật thời gian trước khi tạm dừng
+    if (turnStartTime) {
+        const elapsed = Math.floor((Date.now() - turnStartTime) / 1000);
+        timeLeft[currentPlayer] = Math.max(0, timeLeft[currentPlayer] - elapsed);
+        updateTimerDisplay();
+    }
+}
+
+function resumeTimer() {
+    // Bắt đầu đếm cho người chơi mới
+    turnStartTime = Date.now();
 }
 
 function stopTimer() {
@@ -55,9 +75,15 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    timer.textContent = `Thời gian: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const xMinutes = Math.floor(timeLeft.X / 60);
+    const xSeconds = timeLeft.X % 60;
+    const oMinutes = Math.floor(timeLeft.O / 60);
+    const oSeconds = timeLeft.O % 60;
+    
+    timer.innerHTML = `
+        <span style="color: #667eea; font-weight: bold;">X: ${xMinutes}:${xSeconds.toString().padStart(2, '0')}</span> | 
+        <span style="color: #764ba2; font-weight: bold;">O: ${oMinutes}:${oSeconds.toString().padStart(2, '0')}</span>
+    `;
 }
 
 function handleCellClick(e) {
@@ -76,7 +102,7 @@ function handleCellClick(e) {
         if (!checkWin()) {
             switchPlayer();
             if (currentPlayer === 'O') {
-                setTimeout(botMove, 500);
+                botMove(); // Bỏ setTimeout ở đây vì đã có trong botMove
             }
         }
     } else {
@@ -93,7 +119,7 @@ function handleCellClick(e) {
                 if (!checkWin()) {
                     switchPlayer();
                     if (currentPlayer === 'O') {
-                        setTimeout(botMove, 500);
+                        botMove(); // Bỏ setTimeout ở đây vì đã có trong botMove
                     }
                 }
             } else if (gameState[index] === currentPlayer) {
@@ -135,6 +161,8 @@ function movePiece(fromIndex, toIndex) {
 }
 
 function switchPlayer() {
+    pauseTimer(); // Tạm dừng và cập nhật thời gian người chơi hiện tại
+    
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
     status.textContent = `Lượt của: ${currentPlayer} (${currentPlayer === 'X' ? 'Người chơi' : 'Bot'})`;
     
@@ -142,7 +170,7 @@ function switchPlayer() {
         instruction.textContent = 'Chọn quân X của bạn để di chuyển';
     }
     
-    startTimer();
+    resumeTimer(); // Bắt đầu đếm cho người chơi mới
 }
 
 function updatePhaseDisplay() {
@@ -185,26 +213,35 @@ function endGame(message) {
 function botMove() {
     if (!gameActive || currentPlayer !== 'O') return;
 
-    let move;
-    if (difficulty === 'easy') {
-        move = botMoveEasy();
-    } else if (difficulty === 'medium') {
-        move = botMoveMedium();
-    } else {
-        move = botMoveHard();
-    }
+    // Tạo delay để thời gian bot chạy (0.5 - 2 giây tùy cấp độ)
+    let thinkTime = 500;
+    if (difficulty === 'medium') thinkTime = 1000;
+    if (difficulty === 'hard') thinkTime = 1500;
 
-    if (move) {
-        if (gamePhase === 1) {
-            placePiece(move, 'O');
+    setTimeout(() => {
+        if (!gameActive || currentPlayer !== 'O') return;
+
+        let move;
+        if (difficulty === 'easy') {
+            move = botMoveEasy();
+        } else if (difficulty === 'medium') {
+            move = botMoveMedium();
         } else {
-            movePiece(move.from, move.to);
+            move = botMoveHard();
         }
-        
-        if (!checkWin()) {
-            switchPlayer();
+
+        if (move) {
+            if (gamePhase === 1) {
+                placePiece(move, 'O');
+            } else {
+                movePiece(move.from, move.to);
+            }
+            
+            if (!checkWin()) {
+                switchPlayer();
+            }
         }
-    }
+    }, thinkTime);
 }
 
 function botMoveEasy() {
@@ -263,25 +300,61 @@ function botMoveHard() {
 
 // Thuật toán Minimax cho giai đoạn di chuyển
 function minimaxMove() {
-    let bestScore = -Infinity;
-    let bestMove = null;
-    
+    // Kiểm tra xem có nước đi thắng ngay không
     const oPieces = gameState.map((val, idx) => val === 'O' ? idx : null).filter(v => v !== null);
     const emptyCells = gameState.map((val, idx) => val === '' ? idx : null).filter(v => v !== null);
     
-    // Thử tất cả các nước đi có thể
+    // Ưu tiên: Thắng ngay
+    for (let from of oPieces) {
+        for (let to of emptyCells) {
+            gameState[from] = '';
+            gameState[to] = 'O';
+            if (checkWinForPlayer('O')) {
+                gameState[from] = 'O';
+                gameState[to] = '';
+                return { from, to };
+            }
+            gameState[from] = 'O';
+            gameState[to] = '';
+        }
+    }
+    
+    // Ưu tiên: Chặn người chơi thắng
+    const xPieces = gameState.map((val, idx) => val === 'X' ? idx : null).filter(v => v !== null);
+    for (let from of xPieces) {
+        for (let to of emptyCells) {
+            gameState[from] = '';
+            gameState[to] = 'X';
+            if (checkWinForPlayer('X')) {
+                gameState[from] = 'X';
+                gameState[to] = '';
+                // Tìm nước đi của O để chặn vị trí này
+                for (let oFrom of oPieces) {
+                    if (gameState[to] === '') {
+                        return { from: oFrom, to: to };
+                    }
+                }
+            }
+            gameState[from] = 'X';
+            gameState[to] = '';
+        }
+    }
+    
+    // Sử dụng Minimax để tìm nước đi tốt nhất
+    let bestScore = -Infinity;
+    let bestMove = null;
+    
     for (let from of oPieces) {
         for (let to of emptyCells) {
             // Thực hiện nước đi
-            const temp = gameState[from];
             gameState[from] = '';
             gameState[to] = 'O';
             
-            // Tính điểm bằng Minimax
-            const score = minimax(0, false, -Infinity, Infinity);
+            // Tính điểm bằng Minimax (lượt tiếp theo là X - minimize)
+            const score = minimax(1, false, -Infinity, Infinity);
             
             // Hoàn tác nước đi
-            gameState[from] = temp;
+            gameState[from] = 'O';
             gameState[to] = '';
             
             // Cập nhật nước đi tốt nhất
@@ -298,28 +371,27 @@ function minimaxMove() {
 // Hàm Minimax với Alpha-Beta Pruning
 function minimax(depth, isMaximizing, alpha, beta) {
     // Kiểm tra điều kiện dừng
-    if (checkWinForPlayer('O')) return 10 - depth;
-    if (checkWinForPlayer('X')) return depth - 10;
-    if (depth >= 4) return evaluatePosition('O') - evaluatePosition('X'); // Giới hạn độ sâu
+    if (checkWinForPlayer('O')) return 100 - depth;
+    if (checkWinForPlayer('X')) return depth - 100;
+    if (depth >= 3) return evaluatePosition('O') - evaluatePosition('X'); // Giới hạn độ sâu
     
     const currentPlayer = isMaximizing ? 'O' : 'X';
     const pieces = gameState.map((val, idx) => val === currentPlayer ? idx : null).filter(v => v !== null);
     const emptyCells = gameState.map((val, idx) => val === '' ? idx : null).filter(v => v !== null);
     
-    if (emptyCells.length === 0) return 0;
+    if (emptyCells.length === 0 || pieces.length === 0) return 0;
     
     if (isMaximizing) {
         let maxScore = -Infinity;
         
         for (let from of pieces) {
             for (let to of emptyCells) {
-                const temp = gameState[from];
                 gameState[from] = '';
-                gameState[to] = currentPlayer;
+                gameState[to] = 'O';
                 
                 const score = minimax(depth + 1, false, alpha, beta);
                 
-                gameState[from] = temp;
+                gameState[from] = 'O';
                 gameState[to] = '';
                 
                 maxScore = Math.max(maxScore, score);
@@ -336,13 +408,12 @@ function minimax(depth, isMaximizing, alpha, beta) {
         
         for (let from of pieces) {
             for (let to of emptyCells) {
-                const temp = gameState[from];
                 gameState[from] = '';
-                gameState[to] = currentPlayer;
+                gameState[to] = 'X';
                 
                 const score = minimax(depth + 1, true, alpha, beta);
                 
-                gameState[from] = temp;
+                gameState[from] = 'X';
                 gameState[to] = '';
                 
                 minScore = Math.min(minScore, score);
@@ -455,6 +526,7 @@ function resetGame() {
     gamePhase = 1;
     piecesPlaced = { X: 0, O: 0 };
     selectedPiece = null;
+    timeLeft = { X: 120, O: 120 }; // Reset thời gian cho cả 2 người
     
     status.textContent = 'Lượt của: X (Người chơi)';
     phase.textContent = 'Giai đoạn 1: Đặt quân (0/6)';
