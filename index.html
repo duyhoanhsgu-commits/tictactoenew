@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Caro 3x3</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Tic-tac-toe v-2</h1>
+        <div class="difficulty-selector">
+            <label>Cấp độ:</label>
+            <button class="diff-btn active" data-level="easy">Dễ</button>
+            <button class="diff-btn" data-level="medium">Trung bình</button>
+            <button class="diff-btn" data-level="hard">Khó</button>
+        </div>
+        <div class="game-info">
+            <p id="phase">Giai đoạn 1: Đặt quân (0/3)</p>
+            <p id="status">Lượt của: X (Người chơi)</p>
+            <p id="timer">Thời gian: 2:00</p>
+        </div>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <div class="instructions">
+            <p id="instruction">Nhấp vào ô trống để đặt quân X</p>
+        </div>
+        <button id="resetBtn">Chơi lại</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
