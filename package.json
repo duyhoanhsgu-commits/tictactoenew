@@ -1,0 +1,19 @@
+{
+  "name": "tic-tac-toe-v2",
+  "version": "1.0.0",
+  "description": "Trò chơi Tic-tac-toe nâng cao với 2 giai đoạn: đặt quân và di chuyển quân",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "game",
+    "tic-tac-toe",
+    "minimax",
+    "ai",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -4,38 +4,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Caro 3x3</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Tic-tac-toe v-2</h1>
-        <div class="difficulty-selector">
-            <label>Cấp độ:</label>
-            <button class="diff-btn active" data-level="easy">Dễ</button>
-            <button class="diff-btn" data-level="medium">Trung bình</button>
-            <button class="diff-btn" data-level="hard">Khó</button>
+    <!-- Màn hình chọn cấp độ -->
+    <div id="difficultyScreen" class="difficulty-screen">
+        <div class="difficulty-container">
+            <h1>🎮 Tic-tac-toe v-2</h1>
+            <p class="subtitle">Chọn cấp độ để bắt đầu</p>
+            
+            <div class="difficulty-cards">
+                <div class="difficulty-card" data-level="easy">
+                    <div class="card-icon">😊</div>
+                    <h2>Dễ</h2>
+                    <p>Tôi được huấn luyện trong 1 ngày</p>
+                    <p class="card-detail">Phù hợp cho người mới</p>
+                </div>
+                
+                <div class="difficulty-card" data-level="medium">
+                    <div class="card-icon">🤔</div>
+                    <h2>Trung bình</h2>
+                    <p>Tôi được huấn luyện trong 10 ngày</p>
+                    <p class="card-detail">Thử thách tư duy</p>
+                </div>
+                
+                <div class="difficulty-card" data-level="hard">
+                    <div class="card-icon">🔥</div>
+                    <h2>Khó</h2>
+                    <p>Tôi được huấn luyện trong 1 tháng</p>
+                    <p class="card-detail">Cực kỳ khó thắng!</p>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <!-- Màn hình game -->
+    <div id="gameScreen" class="game-screen hidden">
+        <div class="container">
+            <button id="helpBtn" class="help-btn" title="Hướng dẫn">?</button>
+            <button id="backBtn" class="back-btn" title="Quay lại">←</button>
+            <h1>Tic-tac-toe v-2</h1>
+            <div class="current-difficulty">
+                <span>Cấp độ: <strong id="currentDifficultyText">Dễ</strong></span>
+            </div>
         <div class="game-info">
             <p id="phase">Giai đoạn 1: Đặt quân (0/3)</p>
             <p id="status">Lượt của: X (Người chơi)</p>
             <p id="timer"><span style="color: #667eea; font-weight: bold;">X: 2:00</span> | <span style="color: #764ba2; font-weight: bold;">O: 2:00</span></p>
         </div>
-        <div class="board" id="board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
+        <div class="board-wrapper">
+            <div class="board" id="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
         </div>
         <div class="instructions">
             <p id="instruction">Nhấp vào ô trống để đặt quân X</p>
         </div>
         <button id="resetBtn">Chơi lại</button>
     </div>
-    <script src="script.js"></script>
+    </div>
+
+    <!-- Modal kết quả -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <h2 id="resultTitle">Kết quả</h2>
+            <p id="resultMessage"></p>
+            <button id="playAgainBtn" class="modal-btn">Chơi lại</button>
+        </div>
+    </div>
+
+    <!-- Modal hướng dẫn -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content help-modal-content">
+            <h2>📖 Hướng dẫn chơi</h2>
+            
+            <div class="help-section">
+                <h3>🎯 Mục tiêu</h3>
+                <p>Tạo thành đường thẳng 3 quân (ngang/dọc/chéo) trước đối thủ</p>
+            </div>
+
+            <div class="help-section">
+                <h3>⏱️ Thời gian</h3>
+                <p>Mỗi người có 2 phút cho cả trận. Hết giờ = thua!</p>
+            </div>
+
+            <div class="help-section">
+                <h3>🎮 Cách chơi</h3>
+                <p><strong>Giai đoạn 1 - Đặt quân (6 nước đầu):</strong></p>
+                <ul>
+                    <li>Bạn (X) và Bot (O) luân phiên đặt quân</li>
+                    <li>Mỗi bên đặt 3 quân vào ô trống</li>
+                </ul>
+                
+                <p><strong>Giai đoạn 2 - Di chuyển quân:</strong></p>
+                <ul>
+                    <li>Chọn quân của bạn (X)</li>
+                    <li>Nhấp vào ô trống để di chuyển</li>
+                    <li>Cố gắng tạo đường thẳng và chặn đối thủ</li>
+                </ul>
+            </div>
+
+            <button id="closeHelpBtn" class="modal-btn">Đã hiểu</button>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
 </body>
 </html>

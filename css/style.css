@@ -1,0 +1,447 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 0;
+    padding: 20px;
+}
+
+/* Màn hình chọn cấp độ */
+.difficulty-screen {
+    width: 100%;
+    max-width: 900px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.difficulty-screen.hidden {
+    display: none;
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.difficulty-container {
+    text-align: center;
+    color: white;
+}
+
+.difficulty-container h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.subtitle {
+    font-size: 1.3em;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.difficulty-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
+}
+
+.difficulty-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.difficulty-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.card-icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+}
+
+.difficulty-card h2 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.8em;
+}
+
+.difficulty-card p {
+    color: #666;
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+.card-detail {
+    font-size: 0.95em !important;
+    font-style: italic;
+    color: #999 !important;
+}
+
+/* Màn hình game */
+.game-screen {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.game-screen.hidden {
+    display: none;
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.container {
+    text-align: center;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2em;
+}
+
+.help-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    border: none;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.help-btn:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+}
+
+.back-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+}
+
+.back-btn:hover {
+    background: #c0392b;
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.5);
+}
+
+.current-difficulty {
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 1.1em;
+}
+
+.current-difficulty strong {
+    color: #667eea;
+}
+
+.board-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.difficulty-selector {
+    margin-bottom: 20px;
+}
+
+.difficulty-selector label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.diff-btn {
+    padding: 8px 15px;
+    margin: 0 5px;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.diff-btn:hover {
+    background: #f0f0f0;
+}
+
+.diff-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.diff-btn:disabled:hover {
+    background: white;
+}
+
+.diff-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+.game-info {
+    margin-bottom: 20px;
+}
+
+#phase, #status, #timer {
+    font-size: 1.1em;
+    color: #555;
+    margin: 5px 0;
+}
+
+#timer {
+    font-weight: bold;
+    color: #e74c3c;
+}
+
+#status {
+    font-weight: bold;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 5px;
+    margin: 0 auto 20px;
+    background: #333;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+.cell {
+    background: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3em;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.cell:hover {
+    background: #f0f0f0;
+}
+
+.cell.x {
+    color: #667eea;
+}
+
+.cell.o {
+    color: #764ba2;
+}
+
+.cell.selected {
+    background: #ffe6e6;
+    border: 3px solid #e74c3c;
+}
+
+.instructions {
+    margin: 15px 0;
+    min-height: 30px;
+}
+
+#instruction {
+    color: #666;
+    font-style: italic;
+}
+
+#resetBtn {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#resetBtn:hover {
+    background: #5568d3;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s;
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+    animation: slideDown 0.4s;
+    min-width: 300px;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.help-modal-content {
+    text-align: left;
+}
+
+.help-modal-content h2 {
+    text-align: center;
+    color: #667eea;
+    margin-bottom: 25px;
+}
+
+.help-section {
+    margin-bottom: 20px;
+}
+
+.help-section h3 {
+    color: #555;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+.help-section p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.help-section ul {
+    margin-left: 20px;
+    color: #666;
+    line-height: 1.8;
+}
+
+.help-section ul li {
+    margin-bottom: 5px;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 2em;
+    color: #333;
+}
+
+.modal-content p {
+    font-size: 1.3em;
+    margin-bottom: 30px;
+    color: #555;
+}
+
+.modal-btn {
+    padding: 15px 40px;
+    font-size: 1.2em;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.modal-btn:hover {
+    background: #5568d3;
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Phase Notification */
+.phase-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px 50px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.phase-notification.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.phase-notification h3 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.phase-notification p {
+    font-size: 1.3em;
+    margin: 0;
+}
