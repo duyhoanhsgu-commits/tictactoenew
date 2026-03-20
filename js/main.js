@@ -474,6 +474,7 @@ function botMoveMedium() {
 
 function botMoveHard() {
     if (gamePhase === 1) {
+        // Giai đoạn 1: Đặt quân
         const winMove = findWinningMove('O');
         if (winMove !== null) return winMove;
         
@@ -487,81 +488,85 @@ function botMoveHard() {
         
         return getRandomEmptyCell();
     } else {
-        // Sử dụng Minimax cho giai đoạn 2
-        return minimaxMove();
-    }
-}
-
-// Thuật toán Minimax cho giai đoạn di chuyển
-function minimaxMove() {
-    const oPieces = gameState.map((val, idx) => val === 'O' ? idx : null).filter(v => v !== null);
-    const emptyCells = gameState.map((val, idx) => val === '' ? idx : null).filter(v => v !== null);
-    
-    if (oPieces.length === 0 || emptyCells.length === 0) {
-        return getRandomMove('O');
-    }
-    
-    // Ưu tiên 1: Thắng ngay
-    for (let from of oPieces) {
-        for (let to of emptyCells) {
-            gameState[from] = '';
-            gameState[to] = 'O';
-            const isWin = checkWinForPlayer('O');
-            gameState[from] = 'O';
-            gameState[to] = '';
-            if (isWin) {
-                return { from, to };
+        // Giai đoạn 2: Di chuyển quân - sử dụng Minimax
+        const oPieces = gameState.map((val, idx) => val === 'O' ? idx : null).filter(v => v !== null);
+        const emptyCells = gameState.map((val, idx) => val === '' ? idx : null).filter(v => v !== null);
+        
+        // Kiểm tra có quân và ô trống không
+        if (oPieces.length === 0 || emptyCells.length === 0) {
+            console.log('Không có quân hoặc ô trống');
+            return null;
+        }
+        
+        // Ưu tiên 1: Kiểm tra thắng ngay
+        for (let from of oPieces) {
+            for (let to of emptyCells) {
+                gameState[from] = '';
+                gameState[to] = 'O';
+                const isWin = checkWinForPlayer('O');
+                gameState[from] = 'O';
+                gameState[to] = '';
+                if (isWin) {
+                    console.log('Bot tìm thấy nước thắng:', from, '->', to);
+                    return { from, to };
+                }
             }
         }
-    }
-    
-    // Ưu tiên 2: Chặn người chơi thắng
-    const xPieces = gameState.map((val, idx) => val === 'X' ? idx : null).filter(v => v !== null);
-    for (let xFrom of xPieces) {
-        for (let xTo of emptyCells) {
-            gameState[xFrom] = '';
-            gameState[xTo] = 'X';
-            const wouldWin = checkWinForPlayer('X');
-            gameState[xFrom] = 'X';
-            gameState[xTo] = '';
-            
-            if (wouldWin) {
-                // Tìm nước đi của O để chiếm vị trí xTo
-                for (let oFrom of oPieces) {
-                    // Kiểm tra xem O có thể di chuyển đến vị trí này không
+        
+        // Ưu tiên 2: Chặn người chơi thắng
+        const xPieces = gameState.map((val, idx) => val === 'X' ? idx : null).filter(v => v !== null);
+        for (let xFrom of xPieces) {
+            for (let xTo of emptyCells) {
+                gameState[xFrom] = '';
+                gameState[xTo] = 'X';
+                const wouldWin = checkWinForPlayer('X');
+                gameState[xFrom] = 'X';
+                gameState[xTo] = '';
+                
+                if (wouldWin) {
+                    // Chặn bằng cách di chuyển quân O đến vị trí đó
+                    const oFrom = oPieces[0]; // Lấy quân O đầu tiên
+                    console.log('Bot chặn:', oFrom, '->', xTo);
                     return { from: oFrom, to: xTo };
                 }
             }
         }
-    }
-    
-    // Ưu tiên 3: Sử dụng Minimax để tìm nước đi tốt nhất
-    let bestScore = -Infinity;
-    let bestMove = null;
-    
-    for (let from of oPieces) {
-        for (let to of emptyCells) {
-            // Thực hiện nước đi
-            gameState[from] = '';
-            gameState[to] = 'O';
-            
-            // Tính điểm bằng Minimax (lượt tiếp theo là X - minimize)
-            const score = minimax(1, false, -Infinity, Infinity);
-            
-            // Hoàn tác nước đi
-            gameState[from] = 'O';
-            gameState[to] = '';
-            
-            // Cập nhật nước đi tốt nhất
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = { from, to };
+        
+        // Ưu tiên 3: Sử dụng Minimax
+        let bestScore = -Infinity;
+        let bestMove = null;
+        
+        for (let from of oPieces) {
+            for (let to of emptyCells) {
+                gameState[from] = '';
+                gameState[to] = 'O';
+                
+                const score = minimax(1, false, -Infinity, Infinity);
+                
+                gameState[from] = 'O';
+                gameState[to] = '';
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = { from, to };
+                }
             }
         }
+        
+        // Nếu vẫn không có nước đi, chọn ngẫu nhiên
+        if (!bestMove) {
+            const from = oPieces[Math.floor(Math.random() * oPieces.length)];
+            const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            console.log('Bot đi ngẫu nhiên:', from, '->', to);
+            return { from, to };
+        }
+        
+        console.log('Bot đi Minimax:', bestMove.from, '->', bestMove.to, 'score:', bestScore);
+        return bestMove;
     }
-    
-    return bestMove || getRandomMove('O');
 }
+
+// Thuật toán Minimax cho giai đoạn di chuyển (không dùng nữa, logic đã tích hợp vào botMoveHard)
 
 // Hàm Minimax với Alpha-Beta Pruning
 function minimax(depth, isMaximizing, alpha, beta) {
