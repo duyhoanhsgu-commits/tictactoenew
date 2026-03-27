@@ -25,7 +25,7 @@ let gamePhase = 1; // 1: Đặt quân, 2: Di chuyển quân
 let piecesPlaced = { X: 0, O: 0 };
 let selectedPiece = null;
 let difficulty = 'easy';
-let timeLeft = { X: 30, O: 30 }; // Mỗi người có 2 phút riêng
+let timeLeft = { X: 30, O: 30 }; // Mỗi người có 30 giây riêng
 let timerInterval = null;
 let turnStartTime = null;
 let gameStarted = false; // Kiểm tra game đã bắt đầu chưa
@@ -727,7 +727,7 @@ function resetGame() {
     gamePhase = 1;
     piecesPlaced = { X: 0, O: 0 };
     selectedPiece = null;
-    timeLeft = { X: 120, O: 120 }; // Reset thời gian cho cả 2 người
+    timeLeft = { X: 30, O: 30 }; // Reset thời gian cho cả 2 người
     gameStarted = false; // Reset trạng thái game
     
     status.textContent = 'Lượt của: X (Người chơi)';
