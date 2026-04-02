@@ -379,19 +379,22 @@ function botMoveEasy() {
                     gameState[xFrom] = 'X';
                     gameState[xTo] = '';
                     
-                    if (wouldWin) {
-                        for (let oFrom of oPieces) {
-                            return { from: oFrom, to: xTo };
-                        }
+                    if (wouldWin && oPieces.length > 0) {
+                        const oFrom = oPieces[0];
+                        return { from: oFrom, to: xTo };
                     }
                 }
             }
         }
         
         // Còn lại: di chuyển ngẫu nhiên
-        const from = oPieces[Math.floor(Math.random() * oPieces.length)];
-        const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        return { from, to };
+        if (oPieces.length > 0 && emptyCells.length > 0) {
+            const from = oPieces[Math.floor(Math.random() * oPieces.length)];
+            const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            return { from, to };
+        }
+        
+        return null;
     }
 }
 
@@ -438,11 +441,10 @@ function botMoveMedium() {
                 gameState[xFrom] = 'X';
                 gameState[xTo] = '';
                 
-                if (wouldWin) {
+                if (wouldWin && oPieces.length > 0) {
                     // Di chuyển quân O đến vị trí đó để chặn
-                    for (let oFrom of oPieces) {
-                        return { from: oFrom, to: xTo };
-                    }
+                    const oFrom = oPieces[0];
+                    return { from: oFrom, to: xTo };
                 }
             }
         }
@@ -523,7 +525,7 @@ function botMoveHard() {
                 gameState[xFrom] = 'X';
                 gameState[xTo] = '';
                 
-                if (wouldWin) {
+                if (wouldWin && oPieces.length > 0) {
                     // Chặn bằng cách di chuyển quân O đến vị trí đó
                     const oFrom = oPieces[0]; // Lấy quân O đầu tiên
                     console.log('Bot chặn:', oFrom, '->', xTo);
@@ -554,7 +556,7 @@ function botMoveHard() {
         }
         
         // Nếu vẫn không có nước đi, chọn ngẫu nhiên
-        if (!bestMove) {
+        if (!bestMove && oPieces.length > 0 && emptyCells.length > 0) {
             const from = oPieces[Math.floor(Math.random() * oPieces.length)];
             const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
             console.log('Bot đi ngẫu nhiên:', from, '->', to);
@@ -714,9 +716,11 @@ function getRandomEmptyCell() {
 
 function getRandomMove(player) {
     const pieces = gameState.map((val, idx) => val === player ? idx : null).filter(v => v !== null);
+    if (pieces.length === 0) return null;
+    
     const from = pieces[Math.floor(Math.random() * pieces.length)];
     const to = getRandomEmptyCell();
-    return to !== null ? { from, to } : null;
+    return (to !== null && from !== undefined) ? { from, to } : null;
 }
 
 function resetGame() {
