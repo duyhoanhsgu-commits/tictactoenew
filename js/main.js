@@ -29,6 +29,7 @@ let timeLeft = { X: 30, O: 30 }; // Mỗi người có 30 giây riêng
 let timerInterval = null;
 let turnStartTime = null;
 let gameStarted = false; // Kiểm tra game đã bắt đầu chưa
+let botMoveTimeout = null; // Timeout để đảm bảo bot luôn đi
 
 const winningConditions = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -137,9 +138,7 @@ function handleCellClick(e) {
         placePiece(index, currentPlayer);
         if (!checkWin()) {
             switchPlayer();
-            if (currentPlayer === 'O') {
-                botMove(); // Bỏ setTimeout ở đây vì đã có trong botMove
-            }
+            // Bot sẽ tự động được gọi trong switchPlayer()
         }
     } else {
         // Giai đoạn 2: Di chuyển quân
@@ -154,9 +153,7 @@ function handleCellClick(e) {
                 movePiece(selectedPiece, index);
                 if (!checkWin()) {
                     switchPlayer();
-                    if (currentPlayer === 'O') {
-                        botMove(); // Bỏ setTimeout ở đây vì đã có trong botMove
-                    }
+                    // Bot sẽ tự động được gọi trong switchPlayer()
                 }
             } else if (gameState[index] === currentPlayer) {
                 // Chọn quân khác
@@ -199,6 +196,12 @@ function movePiece(fromIndex, toIndex) {
 function switchPlayer() {
     pauseTimer(); // Tạm dừng và cập nhật thời gian người chơi hiện tại
     
+    // Clear timeout cũ nếu có
+    if (botMoveTimeout) {
+        clearTimeout(botMoveTimeout);
+        botMoveTimeout = null;
+    }
+    
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
     status.textContent = `Lượt của: ${currentPlayer} (${currentPlayer === 'X' ? 'Người chơi' : 'Bot'})`;
     
@@ -207,6 +210,33 @@ function switchPlayer() {
     }
     
     resumeTimer(); // Bắt đầu đếm cho người chơi mới
+    
+    // Nếu là lượt bot, trigger bot move với timeout bảo vệ
+    if (currentPlayer === 'O' && gameActive) {
+        botMove();
+        
+        // Timeout bảo vệ: nếu sau 5 giây bot vẫn chưa đi, force đi
+        botMoveTimeout = setTimeout(() => {
+            if (currentPlayer === 'O' && gameActive) {
+                console.warn('Bot timeout! Force bot move...');
+                const fallbackMove = getFallbackMove();
+                if (fallbackMove) {
+                    try {
+                        if (gamePhase === 1) {
+                            placePiece(fallbackMove, 'O');
+                        } else {
+                            movePiece(fallbackMove.from, fallbackMove.to);
+                        }
+                        if (!checkWin()) {
+                            switchPlayer();
+                        }
+                    } catch (e) {
+                        console.error('Lỗi force bot move:', e);
+                    }
+                }
+            }
+        }, 5000);
+    }
 }
 
 function updatePhaseDisplay() {
@@ -310,29 +340,103 @@ function botMove() {
     if (difficulty === 'hard') thinkTime = 1500;
 
     setTimeout(() => {
-        if (!gameActive || currentPlayer !== 'O') return;
-
-        let move;
-        if (difficulty === 'easy') {
-            move = botMoveEasy();
-        } else if (difficulty === 'medium') {
-            move = botMoveMedium();
-        } else {
-            move = botMoveHard();
-        }
-
-        if (move) {
-            if (gamePhase === 1) {
-                placePiece(move, 'O');
-            } else {
-                movePiece(move.from, move.to);
+        try {
+            if (!gameActive || currentPlayer !== 'O') {
+                console.log('Bot bỏ qua: game không active hoặc không phải lượt bot');
+                return;
             }
-            
-            if (!checkWin()) {
+
+            console.log('Bot bắt đầu suy nghĩ... Giai đoạn:', gamePhase, 'Độ khó:', difficulty);
+
+            let move;
+            if (difficulty === 'easy') {
+                move = botMoveEasy();
+            } else if (difficulty === 'medium') {
+                move = botMoveMedium();
+            } else {
+                move = botMoveHard();
+            }
+
+            console.log('Bot tìm được nước đi:', move);
+
+            if (move) {
+                if (gamePhase === 1) {
+                    placePiece(move, 'O');
+                } else {
+                    movePiece(move.from, move.to);
+                }
+                
+                if (!checkWin()) {
+                    switchPlayer();
+                }
+            } else {
+                // Fallback: nếu không tìm được nước đi, thử lại với logic đơn giản
+                console.error('Bot không tìm thấy nước đi, thử fallback...');
+                const fallbackMove = getFallbackMove();
+                if (fallbackMove) {
+                    console.log('Bot dùng fallback:', fallbackMove);
+                    if (gamePhase === 1) {
+                        placePiece(fallbackMove, 'O');
+                    } else {
+                        movePiece(fallbackMove.from, fallbackMove.to);
+                    }
+                    if (!checkWin()) {
+                        switchPlayer();
+                    }
+                } else {
+                    console.error('Bot không thể đi, chuyển lượt');
+                    switchPlayer();
+                }
+            }
+        } catch (error) {
+            console.error('Lỗi trong botMove:', error);
+            // Thử fallback nếu có lỗi
+            try {
+                const fallbackMove = getFallbackMove();
+                if (fallbackMove) {
+                    if (gamePhase === 1) {
+                        placePiece(fallbackMove, 'O');
+                    } else {
+                        movePiece(fallbackMove.from, fallbackMove.to);
+                    }
+                    if (!checkWin()) {
+                        switchPlayer();
+                    }
+                } else {
+                    switchPlayer();
+                }
+            } catch (e) {
+                console.error('Lỗi fallback:', e);
                 switchPlayer();
             }
         }
     }, thinkTime);
+}
+
+// Hàm fallback đơn giản để đảm bảo bot luôn có nước đi
+function getFallbackMove() {
+    if (gamePhase === 1) {
+        // Giai đoạn 1: Tìm ô trống đầu tiên
+        for (let i = 0; i < 9; i++) {
+            if (gameState[i] === '') return i;
+        }
+        return null;
+    } else {
+        // Giai đoạn 2: Tìm quân O đầu tiên và ô trống đầu tiên
+        let oIndex = -1;
+        let emptyIndex = -1;
+        
+        for (let i = 0; i < 9; i++) {
+            if (gameState[i] === 'O' && oIndex === -1) oIndex = i;
+            if (gameState[i] === '' && emptyIndex === -1) emptyIndex = i;
+            if (oIndex !== -1 && emptyIndex !== -1) break;
+        }
+        
+        if (oIndex !== -1 && emptyIndex !== -1) {
+            return { from: oIndex, to: emptyIndex };
+        }
+        return null;
+    }
 }
 
 function botMoveEasy() {
@@ -725,6 +829,13 @@ function getRandomMove(player) {
 
 function resetGame() {
     hideResultModal(); // Đóng modal nếu đang mở
+    
+    // Clear bot timeout nếu có
+    if (botMoveTimeout) {
+        clearTimeout(botMoveTimeout);
+        botMoveTimeout = null;
+    }
+    
     currentPlayer = 'X';
     gameState = ['', '', '', '', '', '', '', '', ''];
     gameActive = true;
@@ -744,7 +855,7 @@ function resetGame() {
     });
     
     stopTimer(); // Dừng timer
-    updateTimerDisplay(); // Cập nhật hiển thị về 2:00
+    updateTimerDisplay(); // Cập nhật hiển thị về 0:30
 }
 
 cells.forEach(cell => cell.addEventListener('click', handleCellClick));
