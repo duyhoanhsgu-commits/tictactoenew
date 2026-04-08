@@ -30,6 +30,7 @@ let timerInterval = null;
 let turnStartTime = null;
 let gameStarted = false; // Kiểm tra game đã bắt đầu chưa
 let botMoveTimeout = null; // Timeout để đảm bảo bot luôn đi
+let botIsThinking = false; // Flag để khóa input khi bot đang suy nghĩ
 
 const winningConditions = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -123,7 +124,11 @@ function handleCellClick(e) {
 
     if (!gameActive) return;
 
-    if (currentPlayer === 'O') return; // Không cho người chơi đi khi đến lượt Bot
+    // Chặn người chơi khi đến lượt Bot hoặc bot đang suy nghĩ
+    if (currentPlayer === 'O' || botIsThinking) {
+        console.log('Chặn click: Bot đang suy nghĩ hoặc đến lượt bot');
+        return;
+    }
 
     // Bắt đầu đếm giờ khi người chơi đánh nước đầu tiên
     if (!gameStarted) {
@@ -134,6 +139,16 @@ function handleCellClick(e) {
     if (gamePhase === 1) {
         // Giai đoạn 1: Đặt quân
         if (gameState[index] !== '') return;
+        
+        // Kiểm tra người chơi đã đặt đủ 3 quân chưa
+        if (currentPlayer === 'X' && piecesPlaced.X >= 3) {
+            console.log('Người chơi đã đặt đủ 3 quân');
+            return;
+        }
+        if (currentPlayer === 'O' && piecesPlaced.O >= 3) {
+            console.log('Bot đã đặt đủ 3 quân');
+            return;
+        }
         
         placePiece(index, currentPlayer);
         if (!checkWin()) {
@@ -217,8 +232,9 @@ function switchPlayer() {
         
         // Timeout bảo vệ: nếu sau 5 giây bot vẫn chưa đi, force đi
         botMoveTimeout = setTimeout(() => {
-            if (currentPlayer === 'O' && gameActive) {
+            if (currentPlayer === 'O' && gameActive && botIsThinking) {
                 console.warn('Bot timeout! Force bot move...');
+                botIsThinking = false;
                 const fallbackMove = getFallbackMove();
                 if (fallbackMove) {
                     try {
@@ -232,10 +248,15 @@ function switchPlayer() {
                         }
                     } catch (e) {
                         console.error('Lỗi force bot move:', e);
+                        botIsThinking = false;
                     }
                 }
             }
         }, 5000);
+    } else if (currentPlayer === 'X') {
+        // Khi chuyển về lượt người chơi, đảm bảo mở khóa
+        botIsThinking = false;
+        console.log('Lượt người chơi, mở khóa input');
     }
 }
 
@@ -334,6 +355,10 @@ function hideHelpModal() {
 function botMove() {
     if (!gameActive || currentPlayer !== 'O') return;
 
+    // Đánh dấu bot đang suy nghĩ để khóa input người chơi
+    botIsThinking = true;
+    console.log('Bot bắt đầu suy nghĩ, khóa input người chơi');
+
     // Tạo delay để thời gian bot chạy (0.5 - 2 giây tùy cấp độ)
     let thinkTime = 500;
     if (difficulty === 'medium') thinkTime = 1000;
@@ -343,10 +368,11 @@ function botMove() {
         try {
             if (!gameActive || currentPlayer !== 'O') {
                 console.log('Bot bỏ qua: game không active hoặc không phải lượt bot');
+                botIsThinking = false;
                 return;
             }
 
-            console.log('Bot bắt đầu suy nghĩ... Giai đoạn:', gamePhase, 'Độ khó:', difficulty);
+            console.log('Bot thực hiện nước đi... Giai đoạn:', gamePhase, 'Độ khó:', difficulty);
 
             let move;
             if (difficulty === 'easy') {
@@ -358,6 +384,7 @@ function botMove() {
             }
 
             console.log('Bot tìm được nước đi:', move);
+            console.log('Trạng thái: piecesPlaced =', piecesPlaced, 'gamePhase =', gamePhase);
 
             if (move) {
                 if (gamePhase === 1) {
@@ -366,12 +393,30 @@ function botMove() {
                     movePiece(move.from, move.to);
                 }
                 
+                // Reset flag trước khi chuyển lượt
+                botIsThinking = false;
+                
                 if (!checkWin()) {
                     switchPlayer();
                 }
             } else {
+                console.error('Bot không tìm thấy nước đi');
+                console.log('Kiểm tra: piecesPlaced.O =', piecesPlaced.O, 'piecesPlaced.X =', piecesPlaced.X);
+                
+                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2
+                if (gamePhase === 1 && piecesPlaced.X >= 3 && piecesPlaced.O >= 3) {
+                    console.log('Chuyển sang giai đoạn 2');
+                    gamePhase = 2;
+                    phase.textContent = 'Giai đoạn 2: Di chuyển quân';
+                    instruction.textContent = 'Chọn quân X của bạn để di chuyển';
+                    showPhaseNotification();
+                    botIsThinking = false;
+                    switchPlayer();
+                    return;
+                }
+                
                 // Fallback: nếu không tìm được nước đi, thử lại với logic đơn giản
-                console.error('Bot không tìm thấy nước đi, thử fallback...');
+                console.error('Thử fallback...');
                 const fallbackMove = getFallbackMove();
                 if (fallbackMove) {
                     console.log('Bot dùng fallback:', fallbackMove);
@@ -380,11 +425,16 @@ function botMove() {
                     } else {
                         movePiece(fallbackMove.from, fallbackMove.to);
                     }
+                    
+                    // Reset flag trước khi chuyển lượt
+                    botIsThinking = false;
+                    
                     if (!checkWin()) {
                         switchPlayer();
                     }
                 } else {
                     console.error('Bot không thể đi, chuyển lượt');
+                    botIsThinking = false;
                     switchPlayer();
                 }
             }
@@ -399,14 +449,20 @@ function botMove() {
                     } else {
                         movePiece(fallbackMove.from, fallbackMove.to);
                     }
+                    
+                    // Reset flag trước khi chuyển lượt
+                    botIsThinking = false;
+                    
                     if (!checkWin()) {
                         switchPlayer();
                     }
                 } else {
+                    botIsThinking = false;
                     switchPlayer();
                 }
             } catch (e) {
                 console.error('Lỗi fallback:', e);
+                botIsThinking = false;
                 switchPlayer();
             }
         }
@@ -835,6 +891,9 @@ function resetGame() {
         clearTimeout(botMoveTimeout);
         botMoveTimeout = null;
     }
+    
+    // Reset flag bot đang suy nghĩ
+    botIsThinking = false;
     
     currentPlayer = 'X';
     gameState = ['', '', '', '', '', '', '', '', ''];
