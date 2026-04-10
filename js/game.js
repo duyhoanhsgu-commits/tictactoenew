@@ -330,22 +330,33 @@ export class Game {
                 }
             } else {
                 console.error('Bot không tìm thấy nước đi');
+                console.log('Kiểm tra: piecesPlaced.O =', this.piecesPlaced.O, 'piecesPlaced.X =', this.piecesPlaced.X);
                 
-                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2
+                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2 và thử lại
                 if (this.gamePhase === GAME_PHASE.PLACEMENT && 
                     this.piecesPlaced[PLAYER.HUMAN] >= GAME_CONFIG.MAX_PIECES && 
                     this.piecesPlaced[PLAYER.BOT] >= GAME_CONFIG.MAX_PIECES) {
-                    console.log('Chuyển sang giai đoạn 2');
+                    console.log('Chuyển sang giai đoạn 2 và bot thử lại');
                     this.gamePhase = GAME_PHASE.MOVEMENT;
                     this.ui.updatePhase('Giai đoạn 2: Di chuyển quân');
                     this.ui.updateInstruction('Chọn quân X của bạn để di chuyển');
                     this.ui.showPhaseNotification();
-                    this.botIsThinking = false;
-                    this.switchPlayer();
-                    return;
+                    
+                    // Thử lại với giai đoạn 2
+                    const movePhase2 = this.bot.getMove(this.gameState, GAME_PHASE.MOVEMENT, this.piecesPlaced);
+                    if (movePhase2) {
+                        console.log('Bot đi giai đoạn 2:', movePhase2);
+                        this.movePiece(movePhase2.from, movePhase2.to);
+                        this.botIsThinking = false;
+                        if (!this.checkWin()) {
+                            this.switchPlayer();
+                        }
+                        return;
+                    }
                 }
                 
                 // Thử fallback
+                console.error('Thử fallback...');
                 this.forceBotMove();
             }
         } catch (error) {
