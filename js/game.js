@@ -355,6 +355,12 @@ export class Game {
         } catch (error) {
             console.error('Lỗi trong executeBotMove:', error);
             // Gọi fallback khi có lỗi
+            this.forceBoallback
+                console.error('Thử fallback...');
+                this.forceBotMove();
+            }
+        } catch (error) {
+            console.error('Lỗi trong executeBotMove:', error);
             this.forceBotMove();
         }
     }
