@@ -116,55 +116,6 @@ export class Bot {
         }
     }
 
-    getMoveMedium(gameState, gamePhase, piecesPlaced) {
-        if (gamePhase === GAME_PHASE.PLACEMENT) {
-            // Ưu tiên: Thắng > Chặn > Ngẫu nhiên
-            const winMove = this.findWinningMove(gameState, PLAYER.BOT);
-            if (winMove !== null) return winMove;
-            
-            const blockMove = this.findBlockingMove(gameState, PLAYER.HUMAN);
-            if (blockMove !== null) return blockMove;
-            
-            return this.getRandomEmptyCell(gameState);
-        } else {
-            const oPieces = this.getPieces(gameState, PLAYER.BOT);
-            const emptyCells = this.getEmptyCells(gameState);
-            
-            if (oPieces.length === 0 || emptyCells.length === 0) {
-                return this.getRandomMove(gameState, PLAYER.BOT);
-            }
-            
-            // Ưu tiên 1: Thắng ngay
-            for (let from of oPieces) {
-                for (let to of emptyCells) {
-                    if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
-                        return { from, to };
-                    }
-                }
-            }
-            
-            // Ưu tiên 2: Chặn người chơi
-            const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
-            if (blockMove) return blockMove;
-            
-            // Ưu tiên 3: Nước đi tốt nhất
-            let bestScore = -Infinity;
-            let bestMove = null;
-            
-            for (let from of oPieces) {
-                for (let to of emptyCells) {
-                    const score = this.evaluateMove(gameState, from, to, PLAYER.BOT);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { from, to };
-                    }
-                }
-            }
-            
-            return bestMove || this.getRandomMove(gameState, PLAYER.BOT);
-        }
-    }
-
     getMoveHard(gameState, gamePhase, piecesPlaced) {
         if (gamePhase === GAME_PHASE.PLACEMENT) {
             const winMove = this.findWinningMove(gameState, PLAYER.BOT);
