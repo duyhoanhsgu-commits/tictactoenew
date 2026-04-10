@@ -332,35 +332,29 @@ export class Game {
                 console.error('Bot không tìm thấy nước đi');
                 console.log('Kiểm tra: piecesPlaced.O =', this.piecesPlaced.O, 'piecesPlaced.X =', this.piecesPlaced.X);
                 
-                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2 và thử lại
+                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2 và gọi lại bot
                 if (this.gamePhase === GAME_PHASE.PLACEMENT && 
                     this.piecesPlaced[PLAYER.HUMAN] >= GAME_CONFIG.MAX_PIECES && 
                     this.piecesPlaced[PLAYER.BOT] >= GAME_CONFIG.MAX_PIECES) {
-                    console.log('Chuyển sang giai đoạn 2 và bot thử lại');
+                    console.log('Chuyển sang giai đoạn 2 và gọi lại bot');
                     this.gamePhase = GAME_PHASE.MOVEMENT;
                     this.ui.updatePhase('Giai đoạn 2: Di chuyển quân');
                     this.ui.updateInstruction('Chọn quân X của bạn để di chuyển');
                     this.ui.showPhaseNotification();
+                    this.botIsThinking = false;
                     
-                    // Thử lại với giai đoạn 2
-                    const movePhase2 = this.bot.getMove(this.gameState, GAME_PHASE.MOVEMENT, this.piecesPlaced);
-                    if (movePhase2) {
-                        console.log('Bot đi giai đoạn 2:', movePhase2);
-                        this.movePiece(movePhase2.from, movePhase2.to);
-                        this.botIsThinking = false;
-                        if (!this.checkWin()) {
-                            this.switchPlayer();
-                        }
-                        return;
-                    }
+                    // Gọi đệ quy để bot thử lại với giai đoạn 2
+                    this.triggerBotMove();
+                    return;
                 }
                 
-                // Thử fallback
+                // Nếu không phải trường hợp trên, thử fallback
                 console.error('Thử fallback...');
                 this.forceBotMove();
             }
         } catch (error) {
             console.error('Lỗi trong executeBotMove:', error);
+            // Gọi fallback khi có lỗi
             this.forceBotMove();
         }
     }
