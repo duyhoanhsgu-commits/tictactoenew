@@ -7,29 +7,102 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Màn hình chọn cấp độ -->
-    <div id="difficultyScreen" class="difficulty-screen">
+    <!-- Màn hình Welcome -->
+    <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-container">
+            <h1 class="welcome-title">Tic Tac Toe V2</h1>
+            <div class="welcome-buttons">
+                <button id="startBtn" class="welcome-btn start-btn">Bắt đầu thôi</button>
+                <button id="welcomeHelpBtn" class="welcome-btn help-btn-welcome">Hướng dẫn</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Màn hình chọn chế độ chơi -->
+    <div id="gameModeScreen" class="game-mode-screen hidden">
+        <div class="game-mode-container">
+            <h1>⚔️ Chọn chế độ chơi</h1>
+            <p class="subtitle">Bạn muốn thử thách ai?</p>
+            
+            <div class="mode-cards">
+                <div class="mode-card" id="pvpMode">
+                    <div class="mode-icon">👥</div>
+                    <h2>Người vs Người</h2>
+                    <p>Chơi với bạn bè</p>
+                    <p class="mode-detail">2 người chơi trên cùng thiết bị</p>
+                </div>
+                
+                <div class="mode-card" id="pvaMode">
+                    <div class="mode-icon">🤖</div>
+                    <h2>Người vs AI</h2>
+                    <p>Thách thức máy tính</p>
+                    <p class="mode-detail">Chọn độ khó phù hợp với bạn</p>
+                </div>
+            </div>
+            
+            <button id="backToWelcomeBtn" class="back-to-welcome-btn">← Quay lại</button>
+        </div>
+    </div>
+
+    <!-- Màn hình chọn nhân vật (cho AI mode) -->
+    <div id="characterSelectScreen" class="character-select-screen hidden">
+        <div class="character-select-container">
+            <h1>🎭 Chọn nhân vật của bạn</h1>
+            <p class="subtitle">Bạn muốn chơi với nhân vật nào?</p>
+            
+            <div class="character-cards">
+                <div class="character-card" id="selectRabbit">
+                    <div class="character-preview">
+                        <img src="assets/images/Tho.png" alt="Thỏ">
+                    </div>
+                    <h2>Thỏ</h2>
+                    <div class="character-symbol">X</div>
+                    <p>Nhanh nhẹn và thông minh</p>
+                </div>
+                
+                <div class="character-card" id="selectTurtle">
+                    <div class="character-preview">
+                        <img src="assets/images/rua.png" alt="Rùa">
+                    </div>
+                    <h2>Rùa</h2>
+                    <div class="character-symbol">O</div>
+                    <p>Chậm mà chắc</p>
+                </div>
+            </div>
+            
+            <button id="backToModeBtn" class="back-to-welcome-btn">← Quay lại</button>
+        </div>
+    </div>
+
+    <!-- Màn hình chọn cấp độ (chỉ cho AI) -->
+    <div id="difficultyScreen" class="difficulty-screen hidden">
         <div class="difficulty-container">
-            <h1>🎮 Tic-tac-toe v-2</h1>
+            <h1>🎮 Chọn độ khó AI</h1>
             <p class="subtitle">Chọn cấp độ để bắt đầu</p>
             
             <div class="difficulty-cards">
                 <div class="difficulty-card" data-level="easy">
-                    <div class="card-icon">😊</div>
+                    <div class="card-icon">
+                        <img src="assets/images/easyAI.png" alt="Easy AI">
+                    </div>
                     <h2>Dễ</h2>
                     <p>Tôi được huấn luyện trong 1 ngày</p>
                     <p class="card-detail">Phù hợp cho người mới</p>
                 </div>
                 
                 <div class="difficulty-card" data-level="medium">
-                    <div class="card-icon">🤔</div>
+                    <div class="card-icon">
+                        <img src="assets/images/mediumAI.png" alt="Medium AI">
+                    </div>
                     <h2>Trung bình</h2>
                     <p>Tôi được huấn luyện trong 10 ngày</p>
                     <p class="card-detail">Thử thách tư duy</p>
                 </div>
                 
                 <div class="difficulty-card" data-level="hard">
-                    <div class="card-icon">🔥</div>
+                    <div class="card-icon">
+                        <img src="assets/images/hard.png" alt="Hard AI">
+                    </div>
                     <h2>Khó</h2>
                     <p>Tôi được huấn luyện trong 1 tháng</p>
                     <p class="card-detail">Cực kỳ khó thắng!</p>
@@ -40,36 +113,87 @@
 
     <!-- Màn hình game -->
     <div id="gameScreen" class="game-screen hidden">
-        <div class="container">
-            <button id="helpBtn" class="help-btn" title="Hướng dẫn">?</button>
-            <button id="backBtn" class="back-btn" title="Quay lại">←</button>
-            <h1>Tic-tac-toe v-2</h1>
-            <div class="current-difficulty">
-                <span>Cấp độ: <strong id="currentDifficultyText">Dễ</strong></span>
+        <div class="game-layout">
+            <!-- Panel người chơi trái -->
+            <div class="player-panel left-panel" id="leftPanel">
+                <div class="player-avatar">
+                    <img id="avatarLeft" src="assets/images/Tho.png" alt="Player X" class="avatar-img flip-horizontal">
+                    <div class="thinking-indicator" id="thinkingLeft">
+                        <div class="thinking-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <h3 class="player-name" id="nameLeft">Người chơi 1</h3>
+                    <div class="player-symbol">X</div>
+                    <div class="player-timer" id="timerLeft">0:30</div>
+                    <div class="player-pieces">
+                        <span>Quân đã đặt: </span>
+                        <strong id="piecesLeft">0/3</strong>
+                    </div>
+                </div>
             </div>
-        <div class="game-info">
-            <p id="phase">Giai đoạn 1: Đặt quân (0/3)</p>
-            <p id="status">Lượt của: X (Người chơi)</p>
-            <p id="timer"><span style="color: #667eea; font-weight: bold;">X: 2:00</span> | <span style="color: #764ba2; font-weight: bold;">O: 2:00</span></p>
-        </div>
-        <div class="board-wrapper">
-            <div class="board" id="board">
-                <div class="cell" data-index="0"></div>
-                <div class="cell" data-index="1"></div>
-                <div class="cell" data-index="2"></div>
-                <div class="cell" data-index="3"></div>
-                <div class="cell" data-index="4"></div>
-                <div class="cell" data-index="5"></div>
-                <div class="cell" data-index="6"></div>
-                <div class="cell" data-index="7"></div>
-                <div class="cell" data-index="8"></div>
+
+            <!-- Khu vực game chính -->
+            <div class="game-center">
+                <div class="game-header">
+                    <button id="homeBtn" class="home-btn" title="Về trang chủ">🏠</button>
+                    <h1>Tic-tac-toe v-2</h1>
+                    <div class="header-spacer"></div>
+                </div>
+                
+                <div class="game-status">
+                    <p id="phase">Giai đoạn 1: Đặt quân (0/6)</p>
+                    <p id="status">Lượt của: X (Người chơi)</p>
+                    <p id="currentDifficulty" class="difficulty-badge">Cấp độ: <strong id="currentDifficultyText">Dễ</strong></p>
+                </div>
+
+                <div class="board-wrapper">
+                    <div class="board" id="board">
+                        <div class="cell" data-index="0"></div>
+                        <div class="cell" data-index="1"></div>
+                        <div class="cell" data-index="2"></div>
+                        <div class="cell" data-index="3"></div>
+                        <div class="cell" data-index="4"></div>
+                        <div class="cell" data-index="5"></div>
+                        <div class="cell" data-index="6"></div>
+                        <div class="cell" data-index="7"></div>
+                        <div class="cell" data-index="8"></div>
+                    </div>
+                </div>
+
+                <div class="game-controls">
+                    <p id="instruction">Nhấp vào ô trống để đặt quân X</p>
+                    <button id="resetBtn" class="reset-btn">🔄 Chơi lại</button>
+                </div>
+            </div>
+
+            <!-- Panel người chơi phải -->
+            <div class="player-panel right-panel" id="rightPanel">
+                <div class="player-avatar">
+                    <img id="avatarRight" src="assets/images/rua.png" alt="Player O" class="avatar-img">
+                    <div class="thinking-indicator" id="thinkingRight">
+                        <div class="thinking-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="player-info">
+                    <h3 class="player-name" id="nameRight">Bot</h3>
+                    <div class="player-symbol">O</div>
+                    <div class="player-timer" id="timerRight">0:30</div>
+                    <div class="player-pieces">
+                        <span>Quân đã đặt: </span>
+                        <strong id="piecesRight">0/3</strong>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="instructions">
-            <p id="instruction">Nhấp vào ô trống để đặt quân X</p>
-        </div>
-        <button id="resetBtn">Chơi lại</button>
-    </div>
     </div>
 
     <!-- Modal kết quả -->
@@ -116,6 +240,6 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
