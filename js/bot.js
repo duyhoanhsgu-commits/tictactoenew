@@ -22,157 +22,209 @@ export class Bot {
         }
     }
 
+    // ============ EASY MODE ============
     getMoveEasy(gameState, gamePhase, piecesPlaced) {
         if (gamePhase === GAME_PHASE.PLACEMENT) {
-            // Đặt quân ngẫu nhiên, rất ít khi chặn (20% cơ hội)
-            if (Math.random() < 0.2) {
-                const blockMove = this.findBlockingMove(gameState, PLAYER.HUMAN);
-                if (blockMove !== null) return blockMove;
-            }
-            return this.getRandomEmptyCell(gameState);
+            return this.getPlacementMove(gameState, piecesPlaced, 0.2); // 20% chặn
         } else {
-            // Giai đoạn 2: Di chuyển ngẫu nhiên
-            const oPieces = this.getPieces(gameState, PLAYER.BOT);
-            const emptyCells = this.getEmptyCells(gameState);
-            
-            if (oPieces.length === 0 || emptyCells.length === 0) {
-                return this.getRandomMove(gameState, PLAYER.BOT);
-            }
-            
-            // 30% cơ hội thắng nếu có thể
-            if (Math.random() < 0.3) {
-                for (let from of oPieces) {
-                    for (let to of emptyCells) {
-                        if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
-                            return { from, to };
-                        }
-                    }
-                }
-            }
-            
-            // 40% cơ hội chặn
-            if (Math.random() < 0.4) {
-                const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
-                if (blockMove) return blockMove;
-            }
-            
-            // Di chuyển ngẫu nhiên
-            if (oPieces.length > 0 && emptyCells.length > 0) {
-                const from = oPieces[Math.floor(Math.random() * oPieces.length)];
-                const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-                return { from, to };
-            }
-            
-            return null;
+            return this.getMovementMoveEasy(gameState);
         }
     }
 
+    getMovementMoveEasy(gameState) {
+        const oPieces = this.getPieces(gameState, PLAYER.BOT);
+        const emptyCells = this.getEmptyCells(gameState);
+        
+        if (oPieces.length === 0 || emptyCells.length === 0) return null;
+        
+        // 30% cơ hội thắng
+        if (Math.random() < 0.3) {
+            for (let from of oPieces) {
+                for (let to of emptyCells) {
+                    if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
+                        return { from, to };
+                    }
+                }
+            }
+        }
+        
+        // 40% cơ hội chặn
+        if (Math.random() < 0.4) {
+            const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
+            if (blockMove) return blockMove;
+        }
+        
+        // Di chuyển ngẫu nhiên (luôn có)
+        const from = oPieces[Math.floor(Math.random() * oPieces.length)];
+        const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        return { from, to };
+    }
+
+    // ============ MEDIUM MODE ============
     getMoveMedium(gameState, gamePhase, piecesPlaced) {
         if (gamePhase === GAME_PHASE.PLACEMENT) {
-            // Ưu tiên: Thắng > Chặn > Ngẫu nhiên
-            const winMove = this.findWinningMove(gameState, PLAYER.BOT);
-            if (winMove !== null) return winMove;
-            
-            const blockMove = this.findBlockingMove(gameState, PLAYER.HUMAN);
-            if (blockMove !== null) return blockMove;
-            
-            return this.getRandomEmptyCell(gameState);
+            return this.getPlacementMove(gameState, piecesPlaced, 1.0); // 100% chặn
         } else {
-            const oPieces = this.getPieces(gameState, PLAYER.BOT);
-            const emptyCells = this.getEmptyCells(gameState);
-            
-            if (oPieces.length === 0 || emptyCells.length === 0) {
-                return this.getRandomMove(gameState, PLAYER.BOT);
-            }
-            
-            // Ưu tiên 1: Thắng ngay
-            for (let from of oPieces) {
-                for (let to of emptyCells) {
-                    if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
-                        return { from, to };
-                    }
-                }
-            }
-            
-            // Ưu tiên 2: Chặn người chơi
-            const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
-            if (blockMove) return blockMove;
-            
-            // Ưu tiên 3: Nước đi tốt nhất
-            let bestScore = -Infinity;
-            let bestMove = null;
-            
-            for (let from of oPieces) {
-                for (let to of emptyCells) {
-                    const score = this.evaluateMove(gameState, from, to, PLAYER.BOT);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { from, to };
-                    }
-                }
-            }
-            
-            return bestMove || this.getRandomMove(gameState, PLAYER.BOT);
+            return this.getMovementMoveMedium(gameState);
         }
     }
 
+    getMovementMoveMedium(gameState) {
+        const oPieces = this.getPieces(gameState, PLAYER.BOT);
+        const emptyCells = this.getEmptyCells(gameState);
+        
+        if (oPieces.length === 0 || emptyCells.length === 0) return null;
+        
+        // Ưu tiên 1: Thắng ngay
+        for (let from of oPieces) {
+            for (let to of emptyCells) {
+                if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
+                    return { from, to };
+                }
+            }
+        }
+        
+        // Ưu tiên 2: Chặn
+        const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
+        if (blockMove) return blockMove;
+        
+        // Ưu tiên 3: Nước đi tốt nhất
+        let bestScore = -Infinity;
+        let bestMove = null;
+        
+        for (let from of oPieces) {
+            for (let to of emptyCells) {
+                const score = this.evaluateMove(gameState, from, to, PLAYER.BOT);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = { from, to };
+                }
+            }
+        }
+        
+        // Fallback: ngẫu nhiên
+        if (!bestMove) {
+            const from = oPieces[Math.floor(Math.random() * oPieces.length)];
+            const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            return { from, to };
+        }
+        
+        return bestMove;
+    }
+
+    // ============ HARD MODE ============
     getMoveHard(gameState, gamePhase, piecesPlaced) {
         if (gamePhase === GAME_PHASE.PLACEMENT) {
-            const winMove = this.findWinningMove(gameState, PLAYER.BOT);
-            if (winMove !== null) return winMove;
-            
-            const blockMove = this.findBlockingMove(gameState, PLAYER.HUMAN);
-            if (blockMove !== null) return blockMove;
-            
-            // Ưu tiên ô giữa và góc
-            if (gameState[4] === '') return 4;
-            const corners = [0, 2, 6, 8].filter(i => gameState[i] === '');
-            if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
-            
-            return this.getRandomEmptyCell(gameState);
+            return this.getPlacementMoveHard(gameState, piecesPlaced);
         } else {
-            const oPieces = this.getPieces(gameState, PLAYER.BOT);
-            const emptyCells = this.getEmptyCells(gameState);
-            
-            if (oPieces.length === 0 || emptyCells.length === 0) {
-                return null;
-            }
-            
-            // Ưu tiên 1: Thắng ngay
-            for (let from of oPieces) {
-                for (let to of emptyCells) {
-                    if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
-                        return { from, to };
-                    }
-                }
-            }
-            
-            // Ưu tiên 2: Chặn
-            const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
-            if (blockMove) return blockMove;
-            
-            // Ưu tiên 3: Minimax
-            let bestScore = -Infinity;
-            let bestMove = null;
-            
-            for (let from of oPieces) {
-                for (let to of emptyCells) {
-                    const score = this.minimax(gameState, from, to, 1, false, -Infinity, Infinity);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = { from, to };
-                    }
-                }
-            }
-            
-            if (!bestMove && oPieces.length > 0 && emptyCells.length > 0) {
-                const from = oPieces[Math.floor(Math.random() * oPieces.length)];
-                const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-                return { from, to };
-            }
-            
-            return bestMove;
+            return this.getMovementMoveHard(gameState);
         }
+    }
+
+    getPlacementMoveHard(gameState, piecesPlaced) {
+        // Kiểm tra đã đặt đủ 3 quân
+        if (piecesPlaced[PLAYER.BOT] >= GAME_CONFIG.MAX_PIECES) {
+            console.log('Bot đã đặt đủ 3 quân');
+            return null;
+        }
+        
+        // Ưu tiên 1: Thắng ngay
+        const winMove = this.findWinningMove(gameState, PLAYER.BOT);
+        if (winMove !== null && gameState[winMove] === '') {
+            console.log('Hard: Thắng ngay tại ô', winMove);
+            return winMove;
+        }
+        
+        // Ưu tiên 2: Chặn
+        const blockMove = this.findBlockingMove(gameState, PLAYER.HUMAN);
+        if (blockMove !== null && gameState[blockMove] === '') {
+            console.log('Hard: Chặn tại ô', blockMove);
+            return blockMove;
+        }
+        
+        // Ưu tiên 3: Ô giữa
+        if (gameState[4] === '') {
+            console.log('Hard: Chọn ô giữa 4');
+            return 4;
+        }
+        
+        // Ưu tiên 4: Góc
+        const corners = [0, 2, 6, 8].filter(i => gameState[i] === '');
+        if (corners.length > 0) {
+            const corner = corners[Math.floor(Math.random() * corners.length)];
+            console.log('Hard: Chọn góc', corner);
+            return corner;
+        }
+        
+        // Fallback: ô trống bất kỳ
+        const emptyCell = this.getRandomEmptyCell(gameState);
+        console.log('Hard: Chọn ô trống ngẫu nhiên', emptyCell);
+        return emptyCell;
+    }
+
+    getMovementMoveHard(gameState) {
+        const oPieces = this.getPieces(gameState, PLAYER.BOT);
+        const emptyCells = this.getEmptyCells(gameState);
+        
+        if (oPieces.length === 0 || emptyCells.length === 0) return null;
+        
+        // Ưu tiên 1: Thắng ngay
+        for (let from of oPieces) {
+            for (let to of emptyCells) {
+                if (this.wouldWin(gameState, from, to, PLAYER.BOT)) {
+                    return { from, to };
+                }
+            }
+        }
+        
+        // Ưu tiên 2: Chặn
+        const blockMove = this.findBlockingMovePhase2(gameState, PLAYER.HUMAN, oPieces, emptyCells);
+        if (blockMove) return blockMove;
+        
+        // Ưu tiên 3: Minimax (giới hạn depth để tránh lag)
+        let bestScore = -Infinity;
+        let bestMove = null;
+        
+        for (let from of oPieces) {
+            for (let to of emptyCells) {
+                const score = this.minimax(gameState, from, to, 1, false, -Infinity, Infinity);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = { from, to };
+                }
+            }
+        }
+        
+        // Fallback: ngẫu nhiên
+        if (!bestMove) {
+            const from = oPieces[Math.floor(Math.random() * oPieces.length)];
+            const to = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            return { from, to };
+        }
+        
+        return bestMove;
+    }
+
+    // ============ PLACEMENT HELPER (dùng chung cho Easy/Medium) ============
+    getPlacementMove(gameState, piecesPlaced, blockChance) {
+        // Kiểm tra đã đặt đủ 3 quân
+        if (piecesPlaced[PLAYER.BOT] >= GAME_CONFIG.MAX_PIECES) {
+            console.log('Bot đã đặt đủ 3 quân');
+            return null;
+        }
+        
+        // Thử thắng ngay (luôn ưu tiên)
+        const winMove = this.findWinningMove(gameState, PLAYER.BOT);
+        if (winMove !== null && gameState[winMove] === '') return winMove;
+        
+        // Thử chặn (theo tỷ lệ)
+        if (Math.random() < blockChance) {
+            const blockMove = this.findBlockingMove(gameState, PLAYER.HUMAN);
+            if (blockMove !== null && gameState[blockMove] === '') return blockMove;
+        }
+        
+        // Đặt ngẫu nhiên (luôn có ô trống)
+        return this.getRandomEmptyCell(gameState);
     }
 
     // Helper methods
@@ -201,9 +253,10 @@ export class Bot {
     findWinningMove(gameState, player) {
         for (let i = 0; i < GAME_CONFIG.TOTAL_CELLS; i++) {
             if (gameState[i] === '') {
-                gameState[i] = player;
-                const isWin = this.checkWinForPlayer(gameState, player);
-                gameState[i] = '';
+                // Tạo bản sao để không ảnh hưởng gameState gốc
+                const temp = [...gameState];
+                temp[i] = player;
+                const isWin = this.checkWinForPlayer(temp, player);
                 if (isWin) return i;
             }
         }

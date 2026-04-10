@@ -29,6 +29,7 @@ export class Game {
         this.gameStarted = false;
         this.botIsThinking = false;
         this.botMoveTimeout = null;
+        this.botRetryCount = 0; // Đếm số lần bot thử lại
         
         this.timer.reset();
         this.timer.setCurrentPlayer(this.currentPlayer);
@@ -285,6 +286,7 @@ export class Game {
 
     triggerBotMove() {
         this.botIsThinking = true;
+        this.botRetryCount = 0; // Reset retry count
         console.log('Bot bắt đầu suy nghĩ, khóa input người chơi');
 
         const thinkTime = GAME_CONFIG.BOT_THINK_TIME[this.bot.difficulty];
@@ -316,23 +318,53 @@ export class Game {
             console.log('Bot tìm được nước đi:', move);
             console.log('Trạng thái: piecesPlaced =', this.piecesPlaced, 'gamePhase =', this.gamePhase);
 
-            if (move) {
+            if (move !== null && move !== undefined) {
+                // Kiểm tra nước đi có hợp lệ không
+                let isValidMove = false;
+                
                 if (this.gamePhase === GAME_PHASE.PLACEMENT) {
-                    this.placePiece(move, PLAYER.BOT);
+                    // Kiểm tra ô trống và bot chưa đặt đủ 3 quân
+                    if (this.gameState[move] === '' && this.piecesPlaced[PLAYER.BOT] < GAME_CONFIG.MAX_PIECES) {
+                        this.placePiece(move, PLAYER.BOT);
+                        isValidMove = true;
+                    } else {
+                        console.error('Nước đi không hợp lệ: ô', move, 'đã có quân hoặc bot đã đặt đủ');
+                    }
                 } else {
-                    this.movePiece(move.from, move.to);
+                    // Kiểm tra di chuyển hợp lệ
+                    if (this.gameState[move.from] === PLAYER.BOT && this.gameState[move.to] === '') {
+                        this.movePiece(move.from, move.to);
+                        isValidMove = true;
+                    } else {
+                        console.error('Nước đi không hợp lệ: from', move.from, 'to', move.to);
+                    }
                 }
                 
-                this.botIsThinking = false;
-                
-                if (!this.checkWin()) {
-                    this.switchPlayer();
+                if (isValidMove) {
+                    this.botIsThinking = false;
+                    if (!this.checkWin()) {
+                        this.switchPlayer();
+                    }
+                } else {
+                    // Nước đi không hợp lệ, thử fallback
+                    console.error('Bot trả về nước đi không hợp lệ, thử fallback...');
+                    this.forceBotMove();
                 }
             } else {
                 console.error('Bot không tìm thấy nước đi');
                 console.log('Kiểm tra: piecesPlaced.O =', this.piecesPlaced.O, 'piecesPlaced.X =', this.piecesPlaced.X);
                 
-                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2 và gọi lại bot
+                // Nếu bot đã đặt đủ 3 quân nhưng người chơi chưa đủ → chuyển lượt
+                if (this.gamePhase === GAME_PHASE.PLACEMENT && 
+                    this.piecesPlaced[PLAYER.BOT] >= GAME_CONFIG.MAX_PIECES &&
+                    this.piecesPlaced[PLAYER.HUMAN] < GAME_CONFIG.MAX_PIECES) {
+                    console.log('Bot đã đặt đủ 3 quân, chuyển lượt cho người chơi đặt tiếp');
+                    this.botIsThinking = false;
+                    this.switchPlayer();
+                    return;
+                }
+                
+                // Nếu cả 2 đã đặt đủ 3 quân, chuyển sang giai đoạn 2
                 if (this.gamePhase === GAME_PHASE.PLACEMENT && 
                     this.piecesPlaced[PLAYER.HUMAN] >= GAME_CONFIG.MAX_PIECES && 
                     this.piecesPlaced[PLAYER.BOT] >= GAME_CONFIG.MAX_PIECES) {
@@ -341,20 +373,20 @@ export class Game {
                     this.ui.updatePhase('Giai đoạn 2: Di chuyển quân');
                     this.ui.updateInstruction('Chọn quân X của bạn để di chuyển');
                     this.ui.showPhaseNotification();
-                    this.botIsThinking = false;
                     
-                    // Gọi đệ quy để bot thử lại với giai đoạn 2
-                    this.triggerBotMove();
-                    return;
+                    // Thử lại với giai đoạn 2
+                    const movePhase2 = this.bot.getMove(this.gameState, GAME_PHASE.MOVEMENT, this.piecesPlaced);
+                    if (movePhase2) {
+                        console.log('Bot đi giai đoạn 2:', movePhase2);
+                        this.movePiece(movePhase2.from, movePhase2.to);
+                        this.botIsThinking = false;
+                        if (!this.checkWin()) {
+                            this.switchPlayer();
+                        }
+                        return;
+                    }
                 }
                 
-                // Nếu không phải trường hợp trên, thử fallback
-                console.error('Thử fallback...');
-                this.forceBotMove();
-            }
-        } catch (error) {
-            console.error('Lỗi trong executeBotMove:', error);
-            // Gọi fallback khi có 
                 // Thử fallback
                 console.error('Thử fallback...');
                 this.forceBotMove();
@@ -366,31 +398,73 @@ export class Game {
     }
 
     forceBotMove() {
+        // Giới hạn số lần thử lại
+        if (this.botRetryCount >= 5) {
+            console.error('Bot đã thử quá nhiều lần, chuyển lượt');
+            this.botIsThinking = false;
+            this.botRetryCount = 0;
+            this.switchPlayer();
+            return;
+        }
+        
+        this.botRetryCount++;
+        console.log('Bot thử lại lần', this.botRetryCount);
+        
         try {
             const fallbackMove = this.bot.getFallbackMove(this.gameState, this.gamePhase);
             if (fallbackMove) {
                 console.log('Bot dùng fallback:', fallbackMove);
+                
+                // Kiểm tra fallback có hợp lệ không
+                let isValidMove = false;
+                
                 if (this.gamePhase === GAME_PHASE.PLACEMENT) {
-                    this.placePiece(fallbackMove, PLAYER.BOT);
+                    if (this.gameState[fallbackMove] === '' && this.piecesPlaced[PLAYER.BOT] < GAME_CONFIG.MAX_PIECES) {
+                        this.placePiece(fallbackMove, PLAYER.BOT);
+                        isValidMove = true;
+                    }
                 } else {
-                    this.movePiece(fallbackMove.from, fallbackMove.to);
+                    if (this.gameState[fallbackMove.from] === PLAYER.BOT && this.gameState[fallbackMove.to] === '') {
+                        this.movePiece(fallbackMove.from, fallbackMove.to);
+                        isValidMove = true;
+                    }
                 }
                 
-                this.botIsThinking = false;
-                
-                if (!this.checkWin()) {
-                    this.switchPlayer();
+                if (isValidMove) {
+                    this.botIsThinking = false;
+                    this.botRetryCount = 0;
+                    if (!this.checkWin()) {
+                        this.switchPlayer();
+                    }
+                } else {
+                    // Fallback cũng không hợp lệ, thử lại
+                    console.error('Fallback không hợp lệ, thử lại...');
+                    setTimeout(() => {
+                        if (this.gameActive && this.currentPlayer === PLAYER.BOT) {
+                            this.executeBotMove();
+                        }
+                    }, 500);
                 }
-            } else {
-                console.error('Bot không thể đi, chuyển lượt');
-                this.botIsThinking = false;
-                this.switchPlayer();
+                } else {
+                    console.error('Bot không thể đi, thử lại...');
+                    // Thử lại sau 500ms
+                    setTimeout(() => {
+                        if (this.gameActive && this.currentPlayer === PLAYER.BOT) {
+                            console.log('Bot thử lại lần nữa...');
+                            this.executeBotMove();
+                        }
+                    }, 500);
+                }
+            } catch (e) {
+                console.error('Lỗi fallback:', e);
+                // Thử lại thay vì chuyển lượt
+                setTimeout(() => {
+                    if (this.gameActive && this.currentPlayer === PLAYER.BOT) {
+                        console.log('Bot thử lại sau lỗi...');
+                        this.executeBotMove();
+                    }
+                }, 500);
             }
-        } catch (e) {
-            console.error('Lỗi fallback:', e);
-            this.botIsThinking = false;
-            this.switchPlayer();
-        }
     }
 
     updatePhaseDisplay() {
